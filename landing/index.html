@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drop | Secret Sharing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0c0c0e; color: #e2e8f0; }
+        .mono { font-family: 'Fira Code', monospace; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .violet-glow { box-shadow: 0 0 40px -10px rgba(167, 139, 250, 0.3); }
+        .tab-active { color: #a78bfa; border-bottom: 2px solid #a78bfa; }
+        
+        /* Smooth transitions */
+        #cmd-text { transition: opacity 0.15s ease-in-out; }
+        
+        /* Drawer Animation */
+        #docs-drawer { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        #docs-drawer.open { transform: translateX(0); }
+        .docs-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .docs-overlay.open { opacity: 1; pointer-events: auto; }
+
+        /* Custom Scrollbar for Docs */
+        #docs-drawer::-webkit-scrollbar { width: 4px; }
+        #docs-drawer::-webkit-scrollbar-track { background: transparent; }
+        #docs-drawer::-webkit-scrollbar-thumb { background: rgba(167, 139, 250, 0.2); border-radius: 10px; }
+        #docs-drawer::-webkit-scrollbar-thumb:hover { background: rgba(167, 139, 250, 0.5); }
+
+        .cursor { animation: blink 1s step-end infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-950/30 via-slate-950 to-slate-950 overflow-x-hidden">
+
+    <main class="flex-grow flex items-center justify-center p-4 md:p-6">
+        <div class="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center py-10">
+            
+            <div class="space-y-6 md:space-y-8 text-center md:text-left">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold tracking-widest uppercase mb-2">
+                    v0.1.0 beta
+                </div>
+                <div class="flex items-center justify-center md:justify-start gap-3">
+                    <span class="text-indigo-500/50 text-4xl md:text-6xl mono font-light select-none">$</span>
+                    <h1 class="text-5xl md:text-7xl font-800 tracking-tighter text-white leading-none mono lowercase">
+                        <span id="typewriter">drop</span><span class="text-indigo-500 cursor">_</span>
+                    </h1>
+                </div>
+                
+                <p class="text-lg md:text-xl text-slate-400 leading-relaxed max-w-md mx-auto md:mx-0">
+                    Secure <span class="text-slate-200">end-to-end encrypted</span> secret sharing. Zero-knowledge by design.
+                </p>
+
+                <ul class="space-y-3 md:space-y-4 text-sm text-slate-500 inline-block text-left">
+                    <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> AES-256-GCM Encryption</li>
+                    <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Automatic Burn-on-Read</li>
+                    <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Native Pipe & Stream Support</li>
+                    <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Zero-Configuration Setup</li>
+                </ul>
+
+                <div class="pt-4 flex justify-center md:justify-start">
+                    <button onclick="toggleDocs(true)" class="text-[10px] font-bold tracking-widest uppercase text-indigo-400 hover:text-indigo-300 transition flex items-center gap-2 border-b border-indigo-400/20 pb-1">
+                        View Documentation 
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative w-full max-w-lg mx-auto md:max-w-none">
+                <div class="absolute -top-10 -right-10 w-40 h-40 md:w-64 md:h-64 bg-indigo-600/10 rounded-full blur-3xl"></div>
+                
+                <div class="glass rounded-2xl p-5 md:p-8 violet-glow relative z-10">
+                    <div class="flex gap-6 mb-6 border-b border-white/5">
+                        <button onclick="setTab('curl')" id="tab-curl" class="pb-2 text-[10px] md:text-xs font-bold tracking-widest uppercase transition tab-active">CURL</button>
+                        <button onclick="setTab('brew')" id="tab-brew" class="pb-2 text-[10px] md:text-xs font-bold tracking-widest uppercase transition text-slate-500 hover:text-slate-300">HOMEBREW</button>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-black/40 rounded-xl p-4 md:p-5 border border-white/5 min-h-[140px] flex flex-col justify-center">
+                            <div id="command-container">
+                                <div class="text-[10px] md:text-xs text-slate-500 mb-2 mono" id="cmd-label"># Execute to install via shell</div>
+                                <code class="mono text-indigo-300 block mb-4 text-sm md:text-base break-all leading-relaxed" id="cmd-text">curl -sL getdrop.dev/install.sh | bash</code>
+                            </div>
+                            
+                            <button onclick="copyToClipboard()" class="w-full py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs md:text-sm shadow-lg shadow-indigo-600/20">
+                                <span id="copyText">Copy Command</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                            </button>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/5">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-[10px] text-slate-500 mono uppercase tracking-widest">Quick Start</span>
+                            </div>
+                            <div class="mono text-[11px] md:text-xs space-y-4">
+                                <div class="space-y-1">
+                                    <div class="text-[9px] text-slate-600 uppercase tracking-tight"># Pass a string directly</div>
+                                    <div class="flex gap-2 text-slate-300">
+                                        <span class="text-indigo-500 font-bold">$</span>
+                                        <span>drop "secret-api-key"</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="text-[9px] text-slate-600 uppercase tracking-tight"># Pipe from file or tool</div>
+                                    <div class="flex gap-2 text-slate-300">
+                                        <span class="text-indigo-500 font-bold">$</span>
+                                        <span>cat .env | drop</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <p class="text-[9px] md:text-[10px] text-slate-600 mono uppercase tracking-[0.2em]">Binaries for Linux & MacOS (Intel & Apple)</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="docs-overlay" onclick="toggleDocs(false)" class="docs-overlay fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
+    <aside id="docs-drawer" class="fixed right-0 top-0 h-full w-full max-w-lg bg-slate-950 border-l border-white/10 z-50 overflow-y-auto">
+        <div class="sticky top-0 bg-slate-950/80 backdrop-blur-md z-10 px-8 py-6 flex justify-between items-center border-b border-white/5">
+            <h2 class="text-xl font-bold tracking-tighter text-white">Documentation<span class="text-indigo-500">_</span></h2>
+            <button onclick="toggleDocs(false)" class="text-slate-500 hover:text-white transition p-2 -mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div class="p-8 pt-4 space-y-10 text-sm leading-relaxed text-slate-400">
+            <section class="space-y-4">
+                <h3 class="text-white font-bold uppercase tracking-widest text-[10px]">Architecture</h3>
+                <p>Drop encrypts data locally before it leaves your machine. It use <strong>AES-256-GCM</strong> with a unique key generated for every secret. The server only sees an encrypted blob.</p>
+            </section>
+
+            <section class="space-y-4">
+                <h3 class="text-white font-bold uppercase tracking-widest text-[10px]">Security Model</h3>
+                <p>Every "Drop" consists of two components: the encrypted payload stored on our servers and the decryption key which resides solely in the token you share. Because tokens are never sent to the servers, we have <strong>Zero-Knowledge</strong> of your secrets content.</p>
+            </section>
+
+            <section class="space-y-4">
+                <h3 class="text-white font-bold uppercase tracking-widest text-[10px]">Primary Commands</h3>
+                <div class="space-y-6">
+                    <div>
+                        <code class="text-indigo-400 mono block mb-1">drop [data]</code>
+                        <p>Uploads data and returns a unique retrieval token. Content is encrypted before transmission.</p>
+                        <p class="text-[10px] text-slate-500 mt-2 mono italic leading-none flex items-center gap-1.5">
+                            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+                            Payload limit: 1MB per drop
+                        </p>
+                    </div>
+                    <div>
+                        <code class="text-indigo-400 mono block mb-1">drop get [token]</code>
+                        <p>Fetch and decrypt the secret. The secret is destroyed immediately after retrieval if allowed reads have been exhausted.</p>
+                    </div>
+                    <div>
+                        <code class="text-indigo-400 mono block mb-1">drop purge [token]</code>
+                        <p>Immediate server-side destruction. Permanently wipes the secret from storage without downloading or decrypting the payload.</p>
+                        <p class="text-[10px] text-slate-500 mt-2 mono italic leading-none flex items-center gap-1.5">
+                            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+                            Bypasses retrieval limits
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <h3 class="text-white font-bold uppercase tracking-widest text-[10px]">Piping & Redirection</h3>
+                <div class="space-y-6">
+                    <div>
+                        <code class="text-indigo-400 mono block mb-1">cat .env | drop</code>
+                        <p>Stream any <span class="text-slate-200 font-medium">stdout</span> directly into a secure drop. Perfect for logs, env files, or script outputs.</p>
+                        <p class="text-[10px] text-slate-500 mt-2 mono italic leading-none flex items-center gap-1.5">
+                            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+                            Payload limit: 1MB per drop
+                        </p>
+                    </div>
+                    <div>
+                        <code class="text-indigo-400 mono block mb-1">drop get [token] > .env</code>
+                        <p>Download and redirect secrets directly into a file. The decrypted content never hits your clipboard or shell history.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <h3 class="text-white font-bold uppercase tracking-widest text-[10px]">Options</h3>
+                <div>
+                    <code class="text-indigo-400 mono block mb-1">drop [data] --ttl 2</code>
+                    <p class="text-slate-400">Override the default 5 minutes <span class="text-slate-200">Time-to-Live</span>.
+                    <p class="text-[10px] text-slate-500 mt-2 mono italic leading-none flex items-center gap-1.5">
+                        <span class="w-1 h-1 rounded-full bg-indigo-500/50"></span>
+                        Maximum window: 7 days
+                    </p>
+                </div>
+                <div>
+                    <code class="text-indigo-400 mono block mb-1">drop [data] --reads 5</code>
+                    <p class="text-slate-400">Define a <span class="text-slate-200">retrieval quota</span>. The secret is purged automatically once the read count is exhausted.</p>
+                    <p class="text-[10px] text-slate-500 mt-2 mono italic leading-none flex items-center gap-1.5">
+                        <span class="w-1 h-1 rounded-full bg-indigo-500/50"></span>
+                        Default: 1 (Strict Burn-on-Read)
+                    </p>
+                </div>
+            </section>
+
+            <footer class="pt-10 border-t border-white/5 pb-12">
+                <p class="text-[10px] text-slate-600 mono uppercase tracking-widest italic leading-loose">
+                    Secrets are purged immediately upon reaching the retrieval limit or TTL expiration.
+                </p>
+            </footer>
+        </div>
+    </aside>
+
+    <footer class="pb-10 w-full flex flex-col items-center gap-6">
+        <div class="h-px w-16 bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
+        <a href="https://github.com/cainseing/drop-cli" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-3 text-slate-500 hover:text-indigo-400 transition-all duration-300">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
+            <span class="text-[10px] font-bold tracking-[0.3em] uppercase">View on GitHub</span>
+        </a>
+    </footer>
+
+    <script>
+        let currentCommand = "curl -sL getdrop.dev/install.sh | bash";
+
+        // const textElement = document.getElementById('typewriter');
+        // const commands = ["drop get", "drop purge", "drop version"];
+        // let cmdIdx = 0;
+        // let charIdx = 4; 
+        // let isDeleting = false;
+
+        // function typeEffect() {
+        //     // Safety check: if element isn't found, stop
+        //     if (!textElement) return;
+
+        //     const fullText = commands[cmdIdx];
+            
+        //     // Update the text
+        //     textElement.textContent = isDeleting 
+        //         ? fullText.substring(0, charIdx--) 
+        //         : fullText.substring(0, charIdx++);
+
+        //     // Handle Speed
+        //     let delay = isDeleting ? 60 : 120;
+
+        //     // State Transition: Word Finished
+        //     if (!isDeleting && charIdx > fullText.length) {
+        //         isDeleting = true;
+        //         delay = 2500; // Pause to let them read
+        //         setTimeout(typeEffect, delay);
+        //         return;
+        //     }
+
+        //     // State Transition: Back to "drop" base
+        //     if (isDeleting && charIdx === 4) {
+        //         isDeleting = false;
+        //         cmdIdx = (cmdIdx + 1) % commands.length;
+        //         delay = 500; // Small pause before typing next command
+        //         setTimeout(typeEffect, delay);
+        //         return;
+        //     }
+
+        //     setTimeout(typeEffect, delay);
+        // }
+
+        // // Initialize
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     // Small delay before starting the first animation
+        //     setTimeout(typeEffect, 1000);
+        // });
+
+        function setTab(type) {
+            const curlBtn = document.getElementById('tab-curl');
+            const brewBtn = document.getElementById('tab-brew');
+            const cmdLabel = document.getElementById('cmd-label');
+            const cmdText = document.getElementById('cmd-text');
+
+            cmdText.style.opacity = '0';
+
+            setTimeout(() => {
+                if (type === 'curl') {
+                    currentCommand = "curl -sL getdrop.dev/install.sh | bash";
+                    cmdLabel.innerText = "# Execute to install via shell";
+                    curlBtn.classList.add('tab-active');
+                    curlBtn.classList.remove('text-slate-500');
+                    brewBtn.classList.remove('tab-active');
+                    brewBtn.classList.add('text-slate-500');
+                } else {
+                    currentCommand = "brew tap cainseing/tap && brew install drop";
+                    cmdLabel.innerText = "# Add tap and install via Homebrew";
+                    brewBtn.classList.add('tab-active');
+                    brewBtn.classList.remove('text-slate-500');
+                    curlBtn.classList.remove('tab-active');
+                    curlBtn.classList.add('text-slate-500');
+                }
+                cmdText.innerText = currentCommand;
+                cmdText.style.opacity = '1';
+            }, 150);
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(currentCommand);
+            const btnText = document.getElementById('copyText');
+            const original = btnText.innerText;
+            btnText.innerText = "Copied!";
+            setTimeout(() => { btnText.innerText = original; }, 2000);
+        }
+
+        function toggleDocs(open) {
+            const drawer = document.getElementById('docs-drawer');
+            const overlay = document.getElementById('docs-overlay');
+            if (open) {
+                drawer.classList.add('open');
+                overlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            } else {
+                drawer.classList.remove('open');
+                overlay.classList.remove('open');
+                document.body.style.overflow = 'auto';
+            }
+        }
+    </script>
+</body>
+</html>
