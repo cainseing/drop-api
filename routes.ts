@@ -28,6 +28,17 @@ async function routes(fastify: FastifyInstance, options: any): Promise<void> {
         method: 'POST',
         url: '/blob',
     });
+
+    fastify.route({
+        handler: (request, reply) => {
+            return reply.status(200).send({
+                message: 'Zero-knowledge vault is operational',
+                timestamp: new Date().toISOString()
+            });
+        },
+        method: 'GET',
+        url: '/health',
+    });
 }
 
 export default routes;
