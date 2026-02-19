@@ -8,6 +8,7 @@ declare module 'fastify' {
             MAX_SIZE: number,
             MAX_TTL: number,
             MIN_ENTROPY_SCORE: number,
+            REDIS_PASSWORD: string,
             REDIS_URL: string,
         },
     }

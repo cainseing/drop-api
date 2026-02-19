@@ -43,6 +43,7 @@ Create a `.env` file in the project root:
     DEFAULT_TTL=
     HTTP_PORT=
     REDIS_URL=
+    REDIS_PASSWORD=
     MAX_TTL=
     MAX_SIZE=
     MIN_ENTROPY_SCORE=

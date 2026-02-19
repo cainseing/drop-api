@@ -18,7 +18,7 @@ await app.register(fastifyEnv, {
     schema: config,
 });
 
-await app.register(Redis, { url: app.config.REDIS_URL });
+await app.register(Redis, { password: app.config.REDIS_PASSWORD, url: app.config.REDIS_URL });
 await app.register(routes);
 
 export default app;

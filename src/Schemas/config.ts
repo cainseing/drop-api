@@ -22,6 +22,9 @@ export default {
             type: 'number',
             default: 6.5
         },
+        REDIS_PASSWORD: {
+            type: 'string',
+        },
         REDIS_URL: {
             type: 'string',
             default: 'redis://127.0.0.1:6379'
