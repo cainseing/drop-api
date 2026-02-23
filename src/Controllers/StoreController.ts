@@ -9,7 +9,7 @@ class StoreController {
         const reads: number = request.body?.reads ?? 1;
         const ttl: number = request.body?.ttl ?? App.config.DEFAULT_TTL;
 
-        const id: string  = randomBytes(16).toString('hex');
+        const id: string  = randomBytes(8).toString('hex');
 
         await App.redis.set(`blob:${id}`, blob, 'EX', ttl);
         await App.redis.set(`count:${id}`, reads, 'EX', ttl);

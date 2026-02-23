@@ -1,6 +1,6 @@
 {
   "name": "drop-api",
-  "version": "0.1.0-beta",
+  "version": "0.2.0-beta",
   "description": "Secure, zero-knowledge, secret sharing API",
   "main": "server.js",
   "scripts": {

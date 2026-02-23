@@ -6,7 +6,7 @@ The server never sees decryption keys and refuses to store low-entropy or plaint
 
 ---
 
-## 🔐 Security & Design Principles
+## Security & Design Principles
 
 Drop API is designed around key security principles:
 
@@ -24,7 +24,7 @@ Drop API is designed around key security principles:
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 Before installing, ensure you have:
 
@@ -34,7 +34,7 @@ Before installing, ensure you have:
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 ### 1. Environment Configuration
 
@@ -70,13 +70,13 @@ Start the server in development:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome via a pull request
 
 ---
 
-## 🛡️ Security & Support
+## Security & Support
 
 - Report security issues **privately**.
 - Open issues on GitHub for bugs or feature requests.  
