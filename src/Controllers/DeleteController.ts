@@ -11,14 +11,13 @@ class DeleteController {
             return reply.status(400).send(new ErrorReply(400, 'INVALID_REQUEST'));
         }
 
-        const blob: any = await App.redis.get(`blob:${id}`);
+        const drop: any = await App.redis.call('JSON.GET', `drop:${id}`);
 
-        if (!blob) {
+        if (!drop) {
             return reply.status(404).send();
         }
 
-        await App.redis.del(`blob:${id}`);
-        await App.redis.del(`count:${id}`);
+        await App.redis.del(`drop:${id}`);
 
         return reply.status(204).send();
     }

@@ -8,7 +8,7 @@ import routes from '../routes.js';
 
 const app: fastify.FastifyInstance = fastify({ logger: true });
 
-app.setErrorHandler(Handler.handle);
+// app.setErrorHandler(Handler.handle);
 
 await app.register(cors, { origin: '*' });
 

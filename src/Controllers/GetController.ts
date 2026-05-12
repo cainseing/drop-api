@@ -1,4 +1,5 @@
 import App from "../app.js";
+import Drop from "../DTO/Drop.js";
 import ErrorReply from "../Replies/ErrorReply.js";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { IGetRequest } from "../Requests/IGetRequest.js";
@@ -11,41 +12,31 @@ class GetController {
             return reply.status(400).send(new ErrorReply(400, 'INVALID_REQUEST'));
         }
 
-        const remaining: number = await App.redis.decr(`count:${id}`);
+        await App.redis.call('JSON.NUMINCRBY', `drop:${id}`, '$.reads', -1);
 
-        if (remaining < 0) {
-            await App.redis.del(`blob:${id}`);
-            await App.redis.del(`count:${id}`);
-            await App.redis.del(`signature:${id}`);
-            await App.redis.del(`sender:${id}`);
-            await App.redis.del(`provider:${id}`);
+        const data: any = await App.redis.call('JSON.GET', `drop:${id}`);
 
-            return reply.status(404).send({ error: "NOT_FOUND" });
-        }
-
-        const blob: string|null = await App.redis.get(`blob:${id}`);
-        const signature: string|null = await App.redis.get(`signature:${id}`);
-        const sender: string|null = await App.redis.get(`sender:${id}`);
-        const provider: string|null = await App.redis.get(`provider:${id}`);
-
-        if (!blob) {
+        if (!data) {
             return reply.status(404).send(new ErrorReply(404, 'NOT_FOUND'));
         }
 
-        if (remaining === 0) {
-            await App.redis.del(`blob:${id}`);
-            await App.redis.del(`count:${id}`);
-            await App.redis.del(`signature:${id}`);
-            await App.redis.del(`sender:${id}`);
-            await App.redis.del(`provider:${id}`);
+        const drop: Drop = Drop.fromJSON(JSON.parse(data));
+
+        if (drop.reads < 0) {
+            await App.redis.del(`drop:${id}`);
+            return reply.status(404).send({ error: "NOT_FOUND" });
+        }
+
+        if (drop.reads === 0) {
+            await App.redis.del(`drop:${id}`);
         }
 
         return reply.send({ 
-            blob,
-            remaining_reads: remaining, 
-            signature,
-            sender,
-            provider,
+            blob: drop.blob,
+            remaining_reads: drop.reads, 
+            signature: drop.signature,
+            sender: drop.sender,
+            provider: drop.provider
         });
     }
 }

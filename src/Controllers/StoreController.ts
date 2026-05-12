@@ -1,7 +1,8 @@
 import App from "../app.js";
+import Drop from "../DTO/Drop.js";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { IStoreRequest } from "../Requests/IStoreRequest.js";
-import { randomBytes } from "node:crypto";
+import { randomBytes, sign } from "node:crypto";
 
 class StoreController {
     static async handle(request: FastifyRequest<IStoreRequest>, reply: FastifyReply): Promise<void> {
@@ -14,11 +15,10 @@ class StoreController {
 
         const id: string  = randomBytes(8).toString('hex');
 
-        await App.redis.set(`blob:${id}`, blob, 'EX', ttl);
-        await App.redis.set(`count:${id}`, reads, 'EX', ttl);
-        await App.redis.set(`signature:${id}`, signature, 'EX', ttl);
-        await App.redis.set(`sender:${id}`, sender, 'EX', ttl);
-        await App.redis.set(`provider:${id}`, provider, 'EX', ttl);
+        const drop: Drop = new Drop(blob, provider, reads, sender, signature, ttl);
+
+        await App.redis.call('JSON.SET', `drop:${id}`, '$', JSON.stringify(drop), 'NX');
+        await App.redis.expire(`drop:${id}`, ttl);
 
         return reply.send({ id });
     }
