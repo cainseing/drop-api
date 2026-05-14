@@ -1,5 +1,7 @@
 # Drop API - Secure, zero-knowledge, secret sharing API
 
+[![Tests](https://github.com/cainseing/drop-api/actions/workflows/tests.yml/badge.svg?branch=development)](https://github.com/cainseing/drop-api/actions/workflows/tests.yml) [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
+
 **Drop API** is the secure storage backend for the Drop ecosystem. It stores encrypted, high-entropy data only, operating under a strict zero-knowledge model.
 
 The server never sees decryption keys and refuses to store low-entropy or plaintext data, ensuring that only properly encrypted secrets are accepted.
