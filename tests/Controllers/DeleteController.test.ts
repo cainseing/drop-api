@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IPurgeRequest } from '../../Requests/IPurgeRequest.js';
+import { IPurgeRequest } from '../../src/Requests/IPurgeRequest.js';
+import App from '../../src/app.js';
+import DeleteController from '../../src/Controllers/DeleteController.js';
 
-vi.mock('../../app.js', () => ({
+vi.mock('../../src/app.js', () => ({
   default: {
     config: {
       DEFAULT_TTL: 3600,
@@ -14,14 +16,11 @@ vi.mock('../../app.js', () => ({
   },
 }));
 
-import DeleteController from '../DeleteController.js';
-import App from '../../app.js';
-
 describe('DeleteController', () => {
     let mockRequest: Partial<FastifyRequest<IPurgeRequest>>;
     let mockReply: Partial<FastifyReply>;
-    let mockRedisCall: vi.Mock;
-    let mockRedisDel: vi.Mock;
+    let mockRedisCall: Mock;
+    let mockRedisDel: Mock;
 
     beforeEach(() => {
         vi.clearAllMocks();

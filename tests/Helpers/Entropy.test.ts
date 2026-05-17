@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getEntropyScore } from '../Entropy.js';
+import { getEntropyScore } from '../../src/Helpers/Entropy.js';
 
 describe('getEntropyScore', () => {
     it('should return 0 for empty buffer', () => {

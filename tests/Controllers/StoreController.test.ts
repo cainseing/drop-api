@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IStoreRequest } from '../../Requests/IStoreRequest.js';
+import { IStoreRequest } from '../../src/Requests/IStoreRequest.js';
 
-vi.mock('../../app.js', () => ({
+vi.mock('../../src/app.js', () => ({
   default: {
     config: {
       DEFAULT_TTL: 3600,
@@ -14,14 +14,14 @@ vi.mock('../../app.js', () => ({
   },
 }));
 
-import StoreController from '../StoreController.js';
-import App from '../../app.js';
+import StoreController from '../../src/Controllers/StoreController.js';
+import App from '../../src/app.js';
 
 describe('StoreController', () => {
     let mockRequest: Partial<FastifyRequest<IStoreRequest>>;
     let mockReply: Partial<FastifyReply>;
-    let mockRedisCall: vi.Mock;
-    let mockRedisExpire: vi.Mock;
+    let mockRedisCall: Mock;
+    let mockRedisExpire: Mock;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -73,8 +73,12 @@ describe('StoreController', () => {
 
     it('should use default reads value when not provided', async () => {
         mockRequest.body = {
-            ...mockRequest.body,
+            blob: 'test-blob-data',
+            provider: 'test-provider',
             reads: undefined as any,
+            sender: 'test-sender',
+            signature: 'test-signature',
+            ttl: 7200,
         };
 
         await StoreController.handle(
@@ -90,7 +94,11 @@ describe('StoreController', () => {
 
     it('should use default ttl value when not provided', async () => {
         mockRequest.body = {
-            ...mockRequest.body,
+            blob: 'test-blob-data',
+            provider: 'test-provider',
+            reads: 5,
+            sender: 'test-sender',
+            signature: 'test-signature',
             ttl: undefined as any,
         };
 

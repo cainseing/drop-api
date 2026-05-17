@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IGetRequest } from '../../Requests/IGetRequest.js';
+import { IGetRequest } from '../../src/Requests/IGetRequest.js';
 
-vi.mock('../../app.js', () => ({
+vi.mock('../../src/app.js', () => ({
   default: {
     config: {
       DEFAULT_TTL: 3600,
@@ -14,14 +14,14 @@ vi.mock('../../app.js', () => ({
   },
 }));
 
-import GetController from '../GetController.js';
-import App from '../../app.js';
+import GetController from '../../src/Controllers/GetController.js';
+import App from '../../src/app.js';
 
 describe('GetController', () => {
     let mockRequest: Partial<FastifyRequest<IGetRequest>>;
     let mockReply: Partial<FastifyReply>;
-    let mockRedisCall: vi.Mock;
-    let mockRedisDel: vi.Mock;
+    let mockRedisCall: Mock;
+    let mockRedisDel: Mock;
 
     beforeEach(() => {
         vi.clearAllMocks();
