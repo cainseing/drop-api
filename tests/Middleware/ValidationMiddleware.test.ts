@@ -30,7 +30,7 @@ describe('ValidationMiddleware', () => {
         mockRequest = {
             body: {
                 blob: 'SGVsbG8gV29ybGQ=', // "Hello World" in base64
-                provider: 'test-provider',
+                provider: 'github',
                 reads: 5,
                 sender: 'test-sender',
                 signature: 'test-signature',
@@ -208,7 +208,7 @@ describe('ValidationMiddleware', () => {
     it('should handle missing blob field', () => {
         mockRequest.body = {
             blob: undefined as any,
-            provider: 'test-provider',
+            provider: 'github',
             reads: 5,
             sender: 'test-sender',
             signature: 'test-signature',

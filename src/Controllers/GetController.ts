@@ -12,9 +12,7 @@ class GetController {
             return reply.status(400).send(new ErrorReply(400, 'INVALID_REQUEST'));
         }
 
-        await App.redis.call('JSON.NUMINCRBY', `drop:${id}`, '$.reads', -1);
-
-        const data: any = await App.redis.call('JSON.GET', `drop:${id}`);
+        const data: any = await (App.redis as any).getAndDecrement(`drop:${id}`);
 
         if (!data) {
             return reply.status(404).send(new ErrorReply(404, 'NOT_FOUND'));
@@ -22,18 +20,9 @@ class GetController {
 
         const drop: Drop = Drop.fromJSON(JSON.parse(data));
 
-        if (drop.reads < 0) {
-            await App.redis.del(`drop:${id}`);
-            return reply.status(404).send({ error: "NOT_FOUND" });
-        }
-
-        if (drop.reads === 0) {
-            await App.redis.del(`drop:${id}`);
-        }
-
-        return reply.send({ 
+        return reply.send({
             blob: drop.blob,
-            remaining_reads: drop.reads, 
+            remaining_reads: drop.reads,
             signature: drop.signature,
             sender: drop.sender,
             provider: drop.provider

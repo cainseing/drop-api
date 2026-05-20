@@ -8,8 +8,7 @@ vi.mock('../../src/app.js', () => ({
       DEFAULT_TTL: 3600,
     },
     redis: {
-      call: vi.fn(),
-      del: vi.fn().mockResolvedValue(1),
+      getAndDecrement: vi.fn(),
     },
   },
 }));
@@ -20,14 +19,12 @@ import App from '../../src/app.js';
 describe('GetController', () => {
     let mockRequest: Partial<FastifyRequest<IGetRequest>>;
     let mockReply: Partial<FastifyReply>;
-    let mockRedisCall: Mock;
-    let mockRedisDel: Mock;
+    let mockGetAndDecrement: Mock;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        mockRedisCall = (App as any).redis.call;
-        mockRedisDel = (App as any).redis.del;
+        mockGetAndDecrement = (App as any).redis.getAndDecrement;
 
         mockRequest = {
             params: {
@@ -44,98 +41,73 @@ describe('GetController', () => {
     it('should return drop data when reads > 0', async () => {
         const dropData = {
             blob: 'test-blob-data',
-            provider: 'test-provider',
+            provider: 'github',
             reads: 3,
             sender: 'test-sender',
             signature: 'test-signature',
             ttl: 7200,
         };
 
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(JSON.stringify(dropData));
+        mockGetAndDecrement.mockResolvedValueOnce(JSON.stringify(dropData));
 
         await GetController.handle(
             mockRequest as FastifyRequest<IGetRequest>,
             mockReply as FastifyReply
         );
 
-        expect(mockRedisCall).toHaveBeenNthCalledWith(
-            1,
-            'JSON.NUMINCRBY',
-            'drop:test-id-123',
-            '$.reads',
-            -1
-        );
-
-        expect(mockRedisCall).toHaveBeenNthCalledWith(
-            2,
-            'JSON.GET',
-            'drop:test-id-123'
-        );
+        expect(mockGetAndDecrement).toHaveBeenCalledWith('drop:test-id-123');
 
         expect(mockReply.send).toHaveBeenCalledWith({
             blob: 'test-blob-data',
             remaining_reads: 3,
             signature: 'test-signature',
             sender: 'test-sender',
-            provider: 'test-provider',
+            provider: 'github',
         });
-
-        expect(mockRedisDel).not.toHaveBeenCalled();
     });
 
-    it('should delete drop when reads reach 0', async () => {
+    it('should return drop data and let Lua handle deletion when reads reach 0', async () => {
         const dropData = {
             blob: 'test-blob-data',
-            provider: 'test-provider',
+            provider: 'github',
             reads: 0,
             sender: 'test-sender',
             signature: 'test-signature',
             ttl: 7200,
         };
 
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(JSON.stringify(dropData));
+        mockGetAndDecrement.mockResolvedValueOnce(JSON.stringify(dropData));
 
         await GetController.handle(
             mockRequest as FastifyRequest<IGetRequest>,
             mockReply as FastifyReply
         );
 
-        expect(mockRedisDel).toHaveBeenCalledWith('drop:test-id-123');
+        expect(mockGetAndDecrement).toHaveBeenCalledWith('drop:test-id-123');
         expect(mockReply.send).toHaveBeenCalledWith({
             blob: 'test-blob-data',
             remaining_reads: 0,
             signature: 'test-signature',
             sender: 'test-sender',
-            provider: 'test-provider',
+            provider: 'github',
         });
     });
 
-    it('should delete drop when reads go below 0', async () => {
-        const dropData = {
-            blob: 'test-blob-data',
-            provider: 'test-provider',
-            reads: -1,
-            sender: 'test-sender',
-            signature: 'test-signature',
-            ttl: 7200,
-        };
-
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(JSON.stringify(dropData));
+    it('should return 404 when reads are already exhausted (Lua returns null)', async () => {
+        mockGetAndDecrement.mockResolvedValueOnce(null);
 
         await GetController.handle(
             mockRequest as FastifyRequest<IGetRequest>,
             mockReply as FastifyReply
         );
 
-        expect(mockRedisDel).toHaveBeenCalledWith('drop:test-id-123');
+        expect(mockGetAndDecrement).toHaveBeenCalledWith('drop:test-id-123');
         expect(mockReply.status).toHaveBeenCalledWith(404);
-        expect(mockReply.send).toHaveBeenCalledWith({ error: "NOT_FOUND" });
+        const sentError = (mockReply.send as any).mock.calls[0][0];
+        expect(sentError.toJSON()).toMatchObject({
+            code: 404,
+            message: 'NOT_FOUND',
+        });
     });
 
     it('should return 400 error when id parameter is missing', async () => {
@@ -146,8 +118,7 @@ describe('GetController', () => {
             mockReply as FastifyReply
         );
 
-        expect(mockRedisCall).not.toHaveBeenCalled();
-        expect(mockRedisDel).not.toHaveBeenCalled();
+        expect(mockGetAndDecrement).not.toHaveBeenCalled();
 
         expect(mockReply.status).toHaveBeenCalledWith(400);
         const sentError = (mockReply.send as any).mock.calls[0][0];
@@ -160,16 +131,12 @@ describe('GetController', () => {
     });
 
     it('should return 404 error when drop does not exist', async () => {
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(null);
+        mockGetAndDecrement.mockResolvedValueOnce(null);
 
         await GetController.handle(
             mockRequest as FastifyRequest<IGetRequest>,
             mockReply as FastifyReply
         );
-
-        expect(mockRedisDel).not.toHaveBeenCalled();
 
         expect(mockReply.status).toHaveBeenCalledWith(404);
         const sentError = (mockReply.send as any).mock.calls[0][0];
@@ -184,16 +151,14 @@ describe('GetController', () => {
     it('should use the correct key format', async () => {
         const dropData = {
             blob: 'test-blob',
-            provider: 'test-provider',
+            provider: 'github',
             reads: 1,
             sender: 'test-sender',
             signature: 'test-signature',
             ttl: 3600,
         };
 
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(JSON.stringify(dropData));
+        mockGetAndDecrement.mockResolvedValueOnce(JSON.stringify(dropData));
 
         mockRequest.params!.id = 'custom-id-456';
 
@@ -202,47 +167,27 @@ describe('GetController', () => {
             mockReply as FastifyReply
         );
 
-        expect(mockRedisCall).toHaveBeenNthCalledWith(
-            1,
-            'JSON.NUMINCRBY',
-            'drop:custom-id-456',
-            '$.reads',
-            -1
-        );
-
-        expect(mockRedisCall).toHaveBeenNthCalledWith(
-            2,
-            'JSON.GET',
-            'drop:custom-id-456'
-        );
+        expect(mockGetAndDecrement).toHaveBeenCalledWith('drop:custom-id-456');
     });
 
-    it('should decrement reads by exactly 1', async () => {
+    it('should return the reads value from the Lua result', async () => {
         const dropData = {
             blob: 'test-blob',
-            provider: 'test-provider',
+            provider: 'github',
             reads: 5,
             sender: 'test-sender',
             signature: 'test-signature',
             ttl: 3600,
         };
 
-        mockRedisCall
-            .mockResolvedValueOnce('OK')
-            .mockResolvedValueOnce(JSON.stringify(dropData));
+        mockGetAndDecrement.mockResolvedValueOnce(JSON.stringify(dropData));
 
         await GetController.handle(
             mockRequest as FastifyRequest<IGetRequest>,
             mockReply as FastifyReply
         );
 
-        expect(mockRedisCall).toHaveBeenNthCalledWith(
-            1,
-            'JSON.NUMINCRBY',
-            'drop:test-id-123',
-            '$.reads',
-            -1
-        );
+        expect(mockGetAndDecrement).toHaveBeenCalledWith('drop:test-id-123');
 
         expect(mockReply.send).toHaveBeenCalledWith(
             expect.objectContaining({
