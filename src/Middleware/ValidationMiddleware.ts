@@ -16,6 +16,10 @@ export default class ValidationMiddleware {
         const provider: string = request.body?.provider;
         const signature: string = request.body?.signature;
 
+        if (!blob) {
+            return ReplyHelpers.error(reply, 422, 'BLOB_IS_REQURED');
+        }
+
         if (ttl !== undefined && ttl > App.config.MAX_TTL) {
             return ReplyHelpers.error(reply, 422, 'TTL_TOO_LONG');
         }
