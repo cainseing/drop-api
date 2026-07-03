@@ -10,7 +10,7 @@ export default class HeaderCheckMiddleware {
             return ReplyHelpers.error(reply, 403, 'Unauthorized');
         }
 
-        if (!['drop-cli-v1'].includes(clientHeader) || !['DropCLI/v1.0'].includes(userAgent)) {
+        if (!['drop-cli-v1', 'drop-web-v1'].includes(clientHeader)) {
             return ReplyHelpers.error(reply, 403, 'Unauthorized');
         }
 

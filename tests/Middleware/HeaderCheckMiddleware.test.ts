@@ -44,9 +44,10 @@ describe('HeaderCheckMiddleware', () => {
         expect(ReplyHelpers.error).not.toHaveBeenCalled();
     });
 
-    it('should reject missing x-drop-client header', () => {
+    it('should pass validation for web client', () => {
         mockRequest.headers = {
-            'user-agent': 'DropCLI/v1.0',
+            'x-drop-client': 'drop-web-v1',
+            'user-agent': 'Mozilla/5.0',
         };
 
         HeaderCheckMiddleware.handle(
@@ -55,8 +56,8 @@ describe('HeaderCheckMiddleware', () => {
             mockDone
         );
 
-        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 403, 'Unauthorized');
-        expect(mockDone).not.toHaveBeenCalled();
+        expect(mockDone).toHaveBeenCalled();
+        expect(ReplyHelpers.error).not.toHaveBeenCalled();
     });
 
     it('should reject missing user-agent header', () => {
@@ -103,7 +104,7 @@ describe('HeaderCheckMiddleware', () => {
         expect(mockDone).not.toHaveBeenCalled();
     });
 
-    it('should reject invalid user-agent header', () => {
+    it('should accept any non-empty user-agent value', () => {
         mockRequest.headers = {
             'x-drop-client': 'drop-cli-v1',
             'user-agent': 'Invalid-Agent/1.0',
@@ -115,8 +116,8 @@ describe('HeaderCheckMiddleware', () => {
             mockDone
         );
 
-        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 403, 'Unauthorized');
-        expect(mockDone).not.toHaveBeenCalled();
+        expect(mockDone).toHaveBeenCalled();
+        expect(ReplyHelpers.error).not.toHaveBeenCalled();
     });
 
     it('should reject lowercase x-drop-client header', () => {
@@ -135,7 +136,7 @@ describe('HeaderCheckMiddleware', () => {
         expect(mockDone).not.toHaveBeenCalled();
     });
 
-    it('should reject different user-agent version', () => {
+    it('should accept different user-agent version', () => {
         mockRequest.headers = {
             'x-drop-client': 'drop-cli-v1',
             'user-agent': 'DropCLI/2.0',
@@ -147,8 +148,8 @@ describe('HeaderCheckMiddleware', () => {
             mockDone
         );
 
-        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 403, 'Unauthorized');
-        expect(mockDone).not.toHaveBeenCalled();
+        expect(mockDone).toHaveBeenCalled();
+        expect(ReplyHelpers.error).not.toHaveBeenCalled();
     });
 
     it('should reject empty string headers', () => {

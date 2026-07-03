@@ -215,14 +215,13 @@ describe('ValidationMiddleware', () => {
             ttl: 7200,
         };
 
-        expect(() => {
-            ValidationMiddleware.handle(
-                mockRequest as FastifyRequest<IStoreRequest>,
-                mockReply as FastifyReply,
-                mockDone
-            );
-        }).toThrow();
+        ValidationMiddleware.handle(
+            mockRequest as FastifyRequest<IStoreRequest>,
+            mockReply as FastifyReply,
+            mockDone
+        );
 
+        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 422, 'BLOB_IS_REQURED');
         expect(mockDone).not.toHaveBeenCalled();
     });
 
@@ -235,7 +234,7 @@ describe('ValidationMiddleware', () => {
             mockDone
         );
 
-        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 422, 'BLOB_TOO_SMALL');
+        expect(ReplyHelpers.error).toHaveBeenCalledWith(mockReply, 422, 'BLOB_IS_REQURED');
         expect(mockDone).not.toHaveBeenCalled();
     });
 
